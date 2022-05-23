@@ -23,5 +23,6 @@ func main() {
 	// wrapFunc(redis.LearnString)
 	// wrapFunc(redis.LearnHash)
 	// wrapFunc(redis.LearnList)
-	wrapFunc(redis.LearnSet)
+	// wrapFunc(redis.LearnSet)
+	wrapFunc(redis.LearnZSet)
 }
