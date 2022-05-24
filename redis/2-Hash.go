@@ -74,4 +74,7 @@ func LearnHash() {
 	// HSCAN key cursor [MATCH pattern] [COUNT count]
 	// 迭代哈希表中的键值对
 	fmt.Println(rdb.HScan(ctx, key, 0, "name", 1)) // [name XiuQiuGang]
+
+	// 删除测试数据
+	// rdb.Del(ctx, key)
 }

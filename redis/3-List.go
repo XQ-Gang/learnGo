@@ -72,4 +72,7 @@ func LearnList() {
 	// BRPOPLPUSH source destination timeout
 	// 从列表中弹出一个值，将弹出的元素插入到另外一个列表中并返回它；如果列表没有元素会阻塞列表直到等待超时或发现可弹出元素为止
 	rdb.BRPop(ctx, time.Second*3, key)
+
+	// 删除测试数据
+	// rdb.Del(ctx, key)
 }

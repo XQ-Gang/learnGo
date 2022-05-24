@@ -21,4 +21,7 @@ func LearnHyperLogLog() {
 	// 将多个 HyperLogLog 合并为一个 HyperLogLog
 	rdb.PFMerge(ctx, key1, key2)
 	fmt.Println(rdb.PFCount(ctx, key1)) // 4
+
+	// 删除测试数据
+	// rdb.Del(ctx, key1, key2)
 }

@@ -60,4 +60,7 @@ func LearnSet() {
 	// 迭代集合中的元素
 	fmt.Println(rdb.SScan(ctx, key1, 0, "*", 2).Result()) // [Golang Python] 2 <nil>
 	fmt.Println(rdb.SScan(ctx, key1, 0, "*", 4).Result()) // [Golang Python Java] 0 <nil>
+
+	// 删除测试数据
+	// rdb.Del(ctx, key1, key2, key3)
 }

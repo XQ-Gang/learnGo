@@ -81,4 +81,7 @@ func LearnString() {
 	// DECRBY key decrement
 	// key 所储存的值减去给定的减量值（decrement）
 	fmt.Println(rdb.DecrBy(ctx, key2, 5)) // 20
+
+	// 删除测试数据
+	// rdb.Del(ctx, key, key2)
 }
