@@ -25,5 +25,6 @@ func main() {
 	// wrapFunc(redis.LearnList)
 	// wrapFunc(redis.LearnSet)
 	// wrapFunc(redis.LearnZSet)
-	wrapFunc(redis.LearnHyperLogLog)
+	// wrapFunc(redis.LearnHyperLogLog)
+	wrapFunc(redis.LearnGEO)
 }
