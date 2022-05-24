@@ -74,5 +74,6 @@ func LearnZSet() {
 
 	// ZSCAN key cursor [MATCH pattern] [COUNT count]
 	// 迭代有序集合中的元素（包括元素成员和元素分值）
-	fmt.Println(rdb.ZScan(ctx, key1, 0, "*o*", 2)) // [Golang 8 Python 12]
+	// 对于元素较少的集合，scan 命令会在一次迭代过程中返回所有元素而忽视 COUNT 选项
+	fmt.Println(rdb.ZScan(ctx, key1, 0, "*", 2)) // [Java 6 Golang 8 Python 12]
 }
