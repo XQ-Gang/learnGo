@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/XQ-Gang/learnGo/redis"
+	"github.com/XQ-Gang/learnGo/standard"
 )
 
 func main() {
-	redis.LearnRedis()
+	// learn go-redis/redis/v8
+	// redis.LearnRedis()
+	standard.LearnStandard()
 }
