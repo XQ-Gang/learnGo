@@ -1,7 +1,11 @@
 # learnGo
 XQ-Gang 学习 Golang 之旅
 
-# 优质学习资料
+## 读书笔记
+
+- [ ] Go 语言精进之路：从新手到高手的编程思想、方法和技巧
+
+## 优质学习资料
 
 - [Effective Go](https://go.dev/doc/effective_go)
 
