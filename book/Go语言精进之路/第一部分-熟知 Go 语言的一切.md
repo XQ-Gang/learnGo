@@ -42,3 +42,50 @@ Go 开发团队一直**建议大家使用最新的发布版**。
   - 提供了支持并发的语法元素和机制。通过内置的 **channel** 传递消息或实现同步，并通过 **select** 实现多路 channel 的并发控制。
   - 并发原则对 Go 开发者在程序设计层面的影响。“并发不是并行”。
 - **面向工程，“自带电池”**。Go设计者将所有工程问题浓缩为一个词：**scale**。**gofmt** 统一了 Go 语言的编码风格。
+
+## 4 使用 Go 语言原生编程思维来写 Go 代码
+
+> 不能影响到你的编程思维方式的编程语言不值得学习和使用。——首届图灵奖得主 艾伦·佩利
+
+引例：如何找到小于或等于给定整数 n 的素数？埃拉托斯特尼素数筛算法。
+
+```Go
+package main
+
+// Generate Send the sequence 2, 3, 4, ... to channel 'ch'.
+func Generate(ch chan<- int) {
+	for i := 2; ; i++ {
+		ch <- i // Send 'i' to channel 'ch'.
+	}
+}
+
+// Filter Copy the values from channel 'in' to channel 'out',
+// removing those divisible by 'prime'.
+func Filter(in <-chan int, out chan<- int, prime int) {
+	for {
+		i := <-in // Receive value from 'in'.
+		if i%prime != 0 {
+			out <- i // Send 'i' to 'out'.
+		}
+	}
+}
+
+// The prime sieve: Daisy-chain Filter processes.
+func main() {
+	ch := make(chan int) // Create a new channel.
+	go Generate(ch)      // Launch Generate goroutine.
+	for i := 0; i < 10; i++ {
+		prime := <-ch
+		print(prime, "\n")
+		ch1 := make(chan int)
+		go Filter(ch, ch1, prime)
+		ch = ch1
+	}
+}
+```
+
+我们学习和使用一门编程语言，目标是用这门语言的原生思维方式编写高质量代码。掌握 Go 原生编程思维就是我们通往高质量 Go 编程的学习方向和必经之路。
+
+## 参考
+
+《Go 语言精进之路：从新手到高手的编程思想、方法和技巧》——白明
