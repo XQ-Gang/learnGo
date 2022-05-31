@@ -1,6 +1,6 @@
 package main
 
-import "sync"
+import "fmt"
 
 const (
 	a, b = 1, 11
@@ -34,25 +34,19 @@ func main() {
 	println(a, b, c, d, e, f)
 	println(g, h, i, j, k)
 
-	// 零值可用的切片不能通过下标形式操作数据
-	var s []int
-	s[0] = 12         // 报错！
-	s = append(s, 12) // 正确
+	numbers := [256]int{'a': 8, 'b': 7, 'c': 4, 'd': 3, 'e': 2, 'y': 1, 'x': 5}
+	fnumbers := [...]float64{-1, 4: 2, 3, 7: 4, 9: 5}
+	fmt.Println(numbers)
+	fmt.Println('a' == 97)
+	fmt.Println(fnumbers)
 
-	// map 没有提供零值可用支持
-	var m map[string]int
-	m["go"] = 1 // 报错！
-
-	m1 := make(map[string]int)
-	m1["go"] = 1 // 正确
-
-	// 尽量避免值复制
-	var mu sync.Mutex
-	mu1 := mu
-	foo(mu)
-
-	// 可以通过指针方式传递类似 Mutex 这样的类型
-	var mu sync.Mutex
-	foo(&mu)
-
+	type Point struct {
+		x float64
+		y float64
+	}
+	m := map[string]*Point{
+		"Persepolis": {29.9, 52.9},
+		"Uluru":      {-25.4, 131.0},
+		"Googleplex": {37.4, -122.1},
+	}
 }
