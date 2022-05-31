@@ -1,11 +1,16 @@
-package redis
+package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/XQ-Gang/learnGo/utils"
 	"github.com/go-redis/redis/v8"
 )
 
 func LearnHash() {
+	var rdb = utils.RDB
+	var ctx = context.Background()
+
 	key := "hash-gang"
 	key1, value1 := "name", "XiuQiuGang"
 	key2, value2 := "age", "20"
@@ -77,4 +82,8 @@ func LearnHash() {
 
 	// 删除测试数据
 	// rdb.Del(ctx, key)
+}
+
+func main() {
+	utils.WrapFunc(LearnHash)
 }

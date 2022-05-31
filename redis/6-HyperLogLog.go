@@ -1,8 +1,15 @@
-package redis
+package main
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+	"github.com/XQ-Gang/learnGo/utils"
+)
 
 func LearnHyperLogLog() {
+	var rdb = utils.RDB
+	var ctx = context.Background()
+
 	// HyperLogLog 指令都是 PF 开头，这是因为其发明人是 Philippe Flajolet
 	key1, key2 := "pf-lang1", "pf-lang2"
 	value1, value2, value3, value4 := "Python", "Golang", "Java", "C"
@@ -24,4 +31,8 @@ func LearnHyperLogLog() {
 
 	// 删除测试数据
 	// rdb.Del(ctx, key1, key2)
+}
+
+func main() {
+	utils.WrapFunc(LearnHyperLogLog)
 }

@@ -1,10 +1,15 @@
-package redis
+package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/XQ-Gang/learnGo/utils"
 )
 
 func LearnPubSub() {
+	var rdb = utils.RDB
+	var ctx = context.Background()
+
 	pchan := "lang*"
 	chan1, chan2, chan3 := "lang1", "lang2", "status"
 
@@ -58,4 +63,8 @@ func LearnPubSub() {
 			break
 		}
 	}
+}
+
+func main() {
+	utils.WrapFunc(LearnPubSub)
 }

@@ -1,12 +1,17 @@
-package redis
+package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/XQ-Gang/learnGo/utils"
 	"github.com/go-redis/redis/v8"
 	"time"
 )
 
 func LearnString() {
+	var rdb = utils.RDB
+	var ctx = context.Background()
+
 	key, value := "str-name", "XiuQiuGang"
 	key2, value2 := "str-age", "20"
 
@@ -84,4 +89,8 @@ func LearnString() {
 
 	// 删除测试数据
 	// rdb.Del(ctx, key, key2)
+}
+
+func main() {
+	utils.WrapFunc(LearnString)
 }

@@ -1,11 +1,16 @@
-package redis
+package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/XQ-Gang/learnGo/utils"
 	"time"
 )
 
 func LearnList() {
+	var rdb = utils.RDB
+	var ctx = context.Background()
+
 	key := "list-lang"
 	value1, value2, value3 := "Python", "Golang", "Java"
 
@@ -75,4 +80,8 @@ func LearnList() {
 
 	// 删除测试数据
 	// rdb.Del(ctx, key)
+}
+
+func main() {
+	utils.WrapFunc(LearnList)
 }

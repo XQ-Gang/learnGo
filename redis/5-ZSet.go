@@ -1,11 +1,16 @@
-package redis
+package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/XQ-Gang/learnGo/utils"
 	"github.com/go-redis/redis/v8"
 )
 
 func LearnZSet() {
+	var rdb = utils.RDB
+	var ctx = context.Background()
+
 	key1, key2 := "zset-lang1", "zset-lang2"
 	value1, value2, value3, value4 := "Python", "Golang", "Java", "C"
 
@@ -79,4 +84,8 @@ func LearnZSet() {
 
 	// 删除测试数据
 	// rdb.Del(ctx, key1, key2)
+}
+
+func main() {
+	utils.WrapFunc(LearnZSet)
 }

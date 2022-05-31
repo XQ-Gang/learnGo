@@ -1,11 +1,16 @@
-package redis
+package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/XQ-Gang/learnGo/utils"
 	"github.com/go-redis/redis/v8"
 )
 
 func LearnGEO() {
+	var rdb = utils.RDB
+	var ctx = context.Background()
+
 	key := "China"
 	member1 := redis.GeoLocation{Name: "Beijing", Longitude: 116.40, Latitude: 39.90}
 	member2 := redis.GeoLocation{Name: "Tianjing", Longitude: 117.20, Latitude: 39.12}
@@ -75,4 +80,8 @@ func LearnGEO() {
 
 	// 删除测试数据
 	// rdb.Del(ctx, key)
+}
+
+func main() {
+	utils.WrapFunc(LearnGEO)
 }

@@ -1,8 +1,9 @@
-package standard
+package main
 
 import (
 	"context"
 	"fmt"
+	"github.com/XQ-Gang/learnGo/utils"
 	"time"
 )
 
@@ -58,4 +59,8 @@ func LearnContext() {
 	}()
 
 	time.Sleep(5 * time.Second)
+}
+
+func main() {
+	utils.WrapFunc(LearnContext)
 }
