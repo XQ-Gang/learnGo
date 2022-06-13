@@ -6,10 +6,10 @@
 [alias]
 	st = status
 	a = add
-    aa = add .
-    ba = branch -a
-    br = branch
-    ck = checkout
+	aa = add .
+	ba = branch -a
+	br = branch
+	ck = checkout
 	cb = checkout -b
 	cm = commit -m
 	clog = log --graph --pretty=oneline --abbrev-commit
