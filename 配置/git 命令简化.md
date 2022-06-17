@@ -11,6 +11,7 @@
 	br = branch
 	ck = checkout
 	cb = checkout -b
+	ca = commit --amend
 	cm = commit -m
 	clog = log --graph --pretty=oneline --abbrev-commit
 ```
