@@ -10,9 +10,16 @@
 	ba = branch -a
 	br = branch
 	ck = checkout
+	cka = checkout .
 	cb = checkout -b
-	ca = commit --amend
+	ca = commit --amend --no-edit
 	cm = commit -m
 	clog = log --graph --pretty=oneline --abbrev-commit
+	last = log -1 HEAD
+	d = diff
+	rb = rebase
+	rs = reset
+	rh = reset --hard
+	v = version
 ```
 
