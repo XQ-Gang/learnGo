@@ -70,14 +70,14 @@ func printNonEmptyInterface() {
 func printEmptyInterfaceAndNonEmptyInterface() {
 	var eif interface{} = T(5)
 	var err error = T(5)
-	println("eif:", eif)
-	println("err:", err)
-	println("eif = err:", eif == err)
+	println("eif:", eif)              // eif: (0x1007ff7c0,0x1007f4f78)
+	println("err:", err)              // err: (0x10080b3e8,0x1007f4f78)
+	println("eif = err:", eif == err) // eif = err: true
 
 	err = T(6)
-	println("eif:", eif)
-	println("err:", err)
-	println("eif = err:", eif == err)
+	println("eif:", eif)              // eif: (0x1007ff7c0,0x1007f4f78)
+	println("err:", err)              // err: (0x10080b3e8,0x1007f4f80)
+	println("eif = err:", eif == err) // eif = err: false
 }
 
 func main() {
