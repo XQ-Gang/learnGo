@@ -117,7 +117,7 @@ Go 语言源码默认使用 Unicode 字符集，并采用 UTF-8 编码方案，G
 
 ## 53 掌握使用 time 包的正确方式
 
-time.Time 的结构：
+**time.Time 的结构**：
 
 ```Go
 type Time struct {
@@ -129,14 +129,57 @@ type Time struct {
 
 wall 字段由 hasMonotonic（1bit）、秒数（33bit，距离 1885 年 1 月 1 日的秒数）、纳秒数（30bit）三部分组成。hasMonotonic=1 时，ext 字段表示单调流逝时间；hasMonotonic=0 时，ext 字段整个用于表示挂钟时间的整秒部分（距离公元元年 1 月 1 日的秒数）。通过 time.Parse、time.Date、time.Unix 构建的 time.Time 结构体其中的 hasMonotonic 均为 0.
 
-时间的基础操作：
+**时间的基础操作**：
 
 - 获取当前时间：time.Now
 - 获取特定时区的当前时间：
   - 设置 TZ 环境变量：$TZ=XXX
   - 显式加载时区信息：time.LoadLocation
-- 时间的比较和运算：Equal 方法（如果两个 Time 均带有单调时间，直接比较两者单调时间是否相等；否则，分别比较两个时间的整秒部分和非整秒部分，如果两个部分分别相等，那么两个时间相同，否则不同。）
+- 时间的比较和运算：Equal 方法（如果两个 Time 均带有单调时间，直接比较两者单调时间是否相等；否则，分别比较两个时间的整秒部分和非整秒部分，如果两个部分分别相等，那么两个时间相同，否则不同）；Before 方法、After 方法用于判断两个即时时间的先后关系；
+- 时间的运算：Sub 方法提供差值计算返回 time.Duration 类型（纳秒值，如果两个 Time 都含有单调时间，直接返回 ext 字段的差；否则分别算出整秒部分和非整秒部分的差，然后加和后返回）；Since方法、Until 方法均是基于 Sub 方法实现的；
+
+**时间的格式化输出**：Go 语言采用直观的**参考时间** `01/02 03:04:05PM '06 -0700` 替代 strftime 的各种标准占位符。
+
+**time 包提供了两类定时器**：一次性定时器 Timer 和重复定时器 Ticker。
+
+time.Timer 的结构：
+
+```Go
+type Timer struct {
+   C <-chan Time  // 用户层用户接收定时器触发事件的 channel
+   r runtimeTimer // 一个与 runtime.timer 对应且保持一致的结构
+}
+```
+
+**定时器的使用**：
+
+- Timer 的创建：NewTimer；AfterFunc；After；
+
+- Timer 的资源释放：在定时器被从最小堆移出并触发事件后，其占用的内存资源、channel 等都会在后续被垃圾收集器回收。因此尽量减少在使用 Timer 时对最小堆管理和垃圾回收的压力，即及时调用定时器的 Stop 方法从最小堆删除定时器或重用（Reset 处于活跃状态的定时器）。
+
+- 停止 Timer：Stop 方法
+
+- 重用 Timer：Reset 方法（Go 官方文档建议只对两种定时器调用 Reset 方法：① 已经停止了的定时器；② 已经触发过且 Timer.C 中的数据已经被读空），Go 官方文档给出了推荐的使用模式：
+
+  ```Go
+  if !t.Stop() {
+      <-t.C
+  }
+  t.Reset(d)
+  
+  // 有时，可以使用 select 的 default 分支防止阻塞
+  if !t.Stop() {
+      select {
+          case <-timer.C:
+          default:
+      }
+  }
+  t.Reset(d)
+  ```
+
+- [重用 Timer 时存在的竞态条件](https://github.com/golang/go/issues/11513)：尚无理想解决方案
 
 ## 参考
 
 《Go 语言精进之路：从新手到高手的编程思想、方法和技巧》——白明
+
