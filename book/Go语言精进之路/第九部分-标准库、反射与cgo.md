@@ -115,6 +115,28 @@ Go 语言源码默认使用 Unicode 字符集，并采用 UTF-8 编码方案，G
 
 使用 Go 标准库及其依赖库 golang.org/x/text 下的包，可以实现 UTF-8 与其他字符集编码的相互转换，还可以实现任意字符集编码之间的相互转换。我们使用一个惯用的 **transform.Reader 链**结构完成数据在不同编码的转换。
 
+## 53 掌握使用 time 包的正确方式
+
+time.Time 的结构：
+
+```Go
+type Time struct {
+   wall uint64 // 挂钟时间，用于告知当前时间，可能出现“时间倒流”，连续两次采集之差不一定都正值
+   ext  int64  // 单调时间（纳秒），表示程序进程启动之后流逝的时间，两次采集之差不可能为负数
+   loc *Location // 指向时区信息的指针
+}
+```
+
+wall 字段由 hasMonotonic（1bit）、秒数（33bit，距离 1885 年 1 月 1 日的秒数）、纳秒数（30bit）三部分组成。hasMonotonic=1 时，ext 字段表示单调流逝时间；hasMonotonic=0 时，ext 字段整个用于表示挂钟时间的整秒部分（距离公元元年 1 月 1 日的秒数）。通过 time.Parse、time.Date、time.Unix 构建的 time.Time 结构体其中的 hasMonotonic 均为 0.
+
+时间的基础操作：
+
+- 获取当前时间：time.Now
+- 获取特定时区的当前时间：
+  - 设置 TZ 环境变量：$TZ=XXX
+  - 显式加载时区信息：time.LoadLocation
+- 时间的比较和运算：Equal 方法（如果两个 Time 均带有单调时间，直接比较两者单调时间是否相等；否则，分别比较两个时间的整秒部分和非整秒部分，如果两个部分分别相等，那么两个时间相同，否则不同。）
+
 ## 参考
 
 《Go 语言精进之路：从新手到高手的编程思想、方法和技巧》——白明
