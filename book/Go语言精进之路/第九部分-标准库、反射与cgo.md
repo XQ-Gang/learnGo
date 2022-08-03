@@ -264,6 +264,28 @@ Notify 无法捕捉终止程序信号 SIGKILL 和挂起程序信号 SIGSTOP（�
 
   - crypto/rand 提供了密码学级别的随机数生成器实现 rand.Reader
 
+## 56 掌握 bytes 包和 strings 包的基本操作
+
+字节切片本质是三元组（array, len, cap），字符串本质是二元组（str, len）
+
+bytes 和 strings 提供的基本操作：
+
+- 查找与替换
+  - 定性查找：Contains（任何字符串都包含空串，任何字节切片都包含空字节切片及 nil 切片）；ContainsAny（如果两个集合存在不为空的交集则返回 true）；ContainsRune（判断某一个 Unicode 字符是否包含在第一个参数中）；HasPrefix 和 HasSuffix（空字符串是任何字符串的前缀和后缀，空字节切片和 nil 切片也是任何字节切片的前缀和后缀）；
+  - 定位查找：Index；LastIndex；IndexAny；LastIndexAny；IndexRune；反向查找空串或 nil 切片返回的是第一个参数的长度（越界）
+  - 替换：Replace（当参数 old 为空字符串或 nil 时，Replace 会将 new 插入原字符串的每两个字符间的空隙中，首尾也会被插）；ReplaceAll（Replace 最后一个参数是 -1）；Replacer（传入多组不同字符串的替换）；
+- 比较
+  - 等值比较：字符串操作符直接比较；字节切片只能 Equal `bytes.Equal([]byte{}, nil) == true`；EqualFold（不区分大小写）；
+  - 排序比较：字符串操作符直接比较；Compare（按字典序进行比较）；
+- 分割
+  - Fields 相关函数：忽略输入数据前后的空白字符以及中间连续的空白字符；如果仅包含空白字符则返回空的 string 切片；FieldsFunc；
+  - Split 相关函数：Split（空串作为分隔符时，会按照 UTF-8 进行分割）；SplitN；SplitAfter（分割时带分隔符）；
+- 拼接：Join；strings.Builder；bytes.Buffer；
+- 修剪与变换
+  - 修剪：TrimSpace；Trim；TrimLeft；TrimRight；TrimPrefix；TrimSuffix；
+  - 变换：ToUpper；ToLower；Map；
+- 快速对接 I/O 模型：NewReader -> strings.Reader、bytes.Reader；可以读取作为数据源的字符串或字节切片中的数据；
+
 ## 参考
 
 《Go 语言精进之路：从新手到高手的编程思想、方法和技巧》——白明
