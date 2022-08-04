@@ -286,6 +286,17 @@ bytes 和 strings 提供的基本操作：
   - 变换：ToUpper；ToLower；Map；
 - 快速对接 I/O 模型：NewReader -> strings.Reader、bytes.Reader；可以读取作为数据源的字符串或字节切片中的数据；
 
+## 57 理解标准库的读写模型
+
+Go 基于 io.Writer 和 io.Reader 这两个简单的接口类型构建了 **Go 标准库读写模型**
+
+- 直接读写字节序列：os.File；
+- 直接读写抽象数据类型实例：
+  - fmt.Fprint；fmt.Fscan；（逐个字段填充）
+  - binary.Read；binary.Write；（必须用导出字段，必须用定长类型）
+  - gob.Encode；gob.Decode；（自定义结构体类型中的字段至少有一个是导出的）
+- 通过包裹类型读写数据：带缓冲的 I/O；数据压缩 / 解压缩；
+
 ## 参考
 
 《Go 语言精进之路：从新手到高手的编程思想、方法和技巧》——白明

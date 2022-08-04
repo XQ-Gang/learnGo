@@ -17,5 +17,8 @@ testdata/
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# Mac
+.DS_Store
+
 # IDE
 .idea/
