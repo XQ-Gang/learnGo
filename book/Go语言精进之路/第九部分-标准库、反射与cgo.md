@@ -299,36 +299,45 @@ Go 基于 io.Writer 和 io.Reader 这两个简单的接口类型构建了 **Go �
 
 ## 58 掌握 unsafe 包的安全使用模式
 
-Go 在常规操作下是类型安全的。类型安全是指一块内存数据一旦被特定的类型所解释，它就不能再被解释为其他类型，不能再与其他类型变量建立关联。
+Go 在常规操作下是类型安全的。类型安全是指一块内存数据一旦被特定的类型所解释，它就不能再被解释为其他类型，不能再与其他类型变量建立关联。但使用 unsafe 包可以“刺透”Go 的类型安全保护层。
 
-unsafe 包的函数：
+Go 兼容性并不包含对 unsafe 包的任何承诺，因此除非必要，尽量不要使用 unsafe 包，尤其是 unsafe.Pointer。
+
+**unsafe 包的函数**：
 
 - Sizeof：获取一个表达式值得大小
 - Alignof：获取一个表达式的内存地址对齐系数（变量的地址必须可被该变量的对齐系数整除）
 - Offsetof：获取结构体中某字段的地址偏移量（相对于结构体变量的地址）
 
-unsafe.Pointer 具备下面四条其他指针类型所不具备的性质：
+**unsafe.Pointer 具备下面四条其他指针类型所不具备的性质**：
 
 - 任意类型的指针值都可以被转换为 unsafe.Pointer
 - unsafe.Pointer 也可以被转换为任意类型的指针值
 - uintptr 类型值可以被转换为一个 unsafe.Pointer
 - Unsafe.Pointer 也可以被转换为一个 uintptr 类型值
 
-unsafe 包的主要应用场景：
+**unsafe 包的主要应用场景**：
 
 - 与操作系统以及非 Go 编写的代码的通信
 - 高效类型转换
 - 自定义高性能序列化函数（marshall）、原子操作（atomic）、内存操作（指针运算）等
 
-**uintptr 并不是指针**，它仅仅是一个整数值，即便它存储的是某个对象的内存地址，也不会被算作对该对象的引用。
+**uintptr 并不是指针**，它仅仅是一个整数值，即便它存储的是某个对象的内存地址，也不会被算作对该对象的引用。所以**无法阻止 GC 回收内存对象**。
 
 使用 uintptr 类型变量保存栈上变量的地址是有**风险的**，因为 Go 使用的是**连续栈**的栈管理方案，每个 goroutine 的默认栈大小为 **2KB**。当 goroutine 当前剩余栈空间无法满足函数/方法调用对栈空间的需求时，Go 运行时就会新分配一块更大的内存空间作为该 goroutine 的新栈空间，并将该 goroutine 的原有栈整体复制过来，这样原栈上分配的变量的地址就会发生变化。
 
-unsafe.Pointer 的安全使用模式：
+**unsafe.Pointer 的安全使用模式**：
 
 - *T1 -> unsafe.Pointer -> *T2：转换后类型 T2 的对齐系数不能比转换前类型 T1 的对齐系数更严格。
 - unsafe.Pointer -> uintptr：只用于打印输出，并不参与其他操作。
-- 模拟指针运算：将 unsafe.Pointer 转换为 uintptr 类型，使用 uintptr 类型的值进行算术运算后，再转换回 unsafe.Pointer。经常用于访问结构体内字段或数组中的元素，也常用于实现对某内存对象的步进式检查。
+- 模拟指针运算：将 unsafe.Pointer 转换为 uintptr 类型，使用 uintptr 类型的值进行算术运算后，再转换回 unsafe.Pointer。经常用于访问结构体内字段或数组中的元素，也常用于实现对某内存对象的步进式检查。但要注意：
+  - 不要越界
+  - unsafe.Pointer -> uintptr -> unsafe.Pointer 的转换要在一个表达式中
+- 调用 syscall.Syscall 系列函数时指针类型到 uintptr 类型参数的转换：**将转换操作放入 Syscall 的参数表达式中**。Go 编译器会识别出这种特殊的使用模式，并保证在这个转换过程中原内存对象的有效性。
+- 将 reflect.Value.Pointer 或 reflect.Value.UnsafeAddr 转换为指针：这两个方式均使用 uintptr 类型作为返回值，需要在一个表达式中完成转换，而不要将返回值赋值给一个 uintptr 类型变量再在后续的语句中进行转换。
+- reflect.SliceHeader 和 reflect.StringHeader 必须通过模式 1 构建：如果通过常规语法定义一个 reflect.SliceHeader 类型实例并赋值，那么后续反向转换成 *[]T 时存在 SliceHeader.Data 的值对应的地址上的对象**已经被回收的风险**。
+
+如果使用了 unsafe 包，请使用 go vet 等工具可以对代码进行 unsafe 包使用合规性的检查。
 
 ## 参考
 
