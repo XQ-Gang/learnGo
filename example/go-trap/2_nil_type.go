@@ -2,16 +2,16 @@ package main
 
 import "fmt"
 
-type foo struct {
+type person struct {
 	name string
 	age  int
 }
 
-func (f *foo) setName(name string) {
-	f.name = name
+func (p *person) setName(name string) {
+	p.name = name
 }
 
-func (f *foo) doSomethingWithoutChange() {
+func (p *person) doSomethingWithoutChange() {
 	fmt.Println("doSomethingWithoutChange")
 }
 
@@ -33,14 +33,14 @@ func main() {
 
 	// 3. 自定义类型的方法中没有对自身实例进行解引用操作时，
 	// 我们可以通过该类型的零值指针调用其方法
-	var f *foo = nil
-	f.doSomethingWithoutChange()
-	// var f *foo = nil
-	// f.setName("tony") // panic
+	var p *person = nil
+	p.doSomethingWithoutChange()
+	// var p *person = nil
+	// p.setName("tony") // panic
 
 	// 4. 给接口类型赋予显式转型后的nil(并非真正的零值)
 	// 我们可以通过该接口调用没有解引用操作的方法
-	var i MyInterface = (*foo)(nil)
+	var i MyInterface = (*person)(nil)
 	i.doSomethingWithoutChange()
 	// var i MyInterface = nil
 	// i.doSomethingWithoutChange() // panic
