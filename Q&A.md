@@ -333,6 +333,61 @@ type B struct{
 
 Go支持多重继承，就是在类型中嵌入所有必要的父类型。
 
+## Go 内存管理机制
+
+golang内存管理基本是参考tcmalloc来进行的。go内存管理本质上是一个内存池，只不过内部做了很多优化：**自动伸缩内存池大小，合理的切割内存块**。
+
+Golang 的程序在启动之初，会一次性从操作系统那里申请一大块内存作为内存池。这块内存空间会放在一个叫 `mheap` 的 `struct` 中管理，mheap 负责将这一整块内存切割成不同的区域，并将其中一部分的内存切割成合适的大小，分配给用户使用。
+
+**重要概念**：
+
+- **`page`**：内存页，一块 `8K` 大小的内存空间。Go 与操作系统之间的内存申请和释放，都是以 `page` 为单位的。
+- **`span`**：内存块，**一个或多个连续的** `page` 组成一个 `span`。
+- **`sizeclass`**：空间规格，每个 `span` 都带有一个 `sizeclass`，标记着该 `span` 中的 `page` 应该如何使用。
+- **`object`**：对象，用来存储一个变量数据内存空间，一个 `span` 在初始化时，会被切割成一堆**等大**的 `object`。假设 `object` 的大小是 `16B`，`span` 大小是 `8K`，那么就会把 `span` 中的 `page` 就会被初始化 `8K / 16B = 512` 个 `object`。所谓内存分配，就是分配一个 `object` 出去。
+
+**内部的整体内存布局**：
+
+![img](https://upload-images.jianshu.io/upload_images/11662994-356f568da2987e54.png?imageMogr2/auto-orient/strip|imageView2/2/format/webp)
+
+- `mheap.spans`：用来存储 `page` 和 `span` 信息，比如一个 span 的起始地址是多少，有几个 page，已使用了多大等等。
+- `mheap.bitmap`：存储着各个 `span` 中对象的标记信息，比如对象是否可回收等等。
+- `mheap.arena_start`：将要分配给应用程序使用的空间。
+
+**mcentral**：
+
+- **用途相同**的 `span` 会以链表的形式组织在一起。 这里的用途用 `sizeclass` 来表示，就是指该 `span` 用来存储哪种大小的对象。
+- 找到合适的 `span` 后，会从中取一个 `object` 返回给上层使用。这些 `span` 被放在一个叫做 mcentral 的结构中管理。
+
+**mcache**：
+
+- 为了提高内存并发申请效率，加入缓存层 mcache。
+- 每一个 mcache 和处理器 P 对应。Go 申请内存首先从 P 的 mcache 中分配，如果没有可用的 span 再从 mcentral 中获取。
+- 从 mcache 上分配内存空间是不需要加锁的，因为在同一时间里，一个 P 只有一个线程在其上面运行，不可能出现竞争。没有了锁的限制，大大加速了内存分配。
+
+**整体的内存分配模型**：
+
+![img](https://upload-images.jianshu.io/upload_images/11662994-e6d7200368ec06b6.png?imageMogr2/auto-orient/strip|imageView2/2/w/696/format/webp)
+
+**其他优化**：
+
+- #### zero size：有一些对象所需的内存大小是0，比如 `[0]int`, `struct{}`，这种类型的数据根本就不需要内存，所以没必要走上面那么复杂的逻辑。系统会直接返回一个固定的内存地址。
+
+- #### Tiny 对象：像 `int32`, `byte`, `bool` 以及小字符串等常用的微小对象，都会使用 `sizeclass=1` 的 span，但分配给他们 `8B` 的空间，大部分是用不上的。并且这些类型使用频率非常高，就会导致出现大量的内部碎片。所以 Go 尽量不使用 `sizeclass=1` 的 span， 而是将 `< 16B` 的对象为统一视为 tiny 对象(tinysize)。分配时，从 `sizeclass=2` 的 span 中获取一个 `16B` 的 object 用以分配。如果存储的对象小于 `16B`，这个空间会被暂时保存起来 (`mcache.tiny` 字段)，下次分配时会复用这个空间，直到这个 object 用完为止。平均会节省 `20%` 左右的内存。但如果要存储的数据里有**指针**，即使 `<= 8B` 也不会作为 tiny 对象对待，而是正常使用 `sizeclass=1` 的 `span`。
+
+- 大对象：最大的 sizeclass 最大只能存放 `32K` 的对象。如果一次性申请超过 `32K` 的内存，系统会直接绕过 mcache 和 mcentral，直接从 mheap 上获取，mheap 中有一个 `freelarge` 字段管理着超大 span。
+
+内存的释放过程，就是分配的返过程，当 mcache 中存在较多空闲 span 时，会归还给 mcentral；而 mcentral 中存在较多空闲 span 时，会归还给 mheap；mheap 再归还给操作系统。
+
+这种设计之所以快，主要有以下几个优势：
+
+1. 内存分配大多时候都是在用户态完成的，不需要频繁进入内核态。
+2. 每个 P 都有独立的 span cache，多个 CPU 不会并发读写同一块内存，进而减少 CPU L1 cache 的 cacheline 出现 dirty 情况，增大 cpu cache 命中率。
+3. 内存碎片的问题，Go 是自己在用户态管理的，在 OS 层面看是没有碎片的，使得操作系统层面对碎片的管理压力也会降低。
+4. mcache 的存在使得内存分配不需要加锁。
+
+当然这不是没有代价的，Go 需要预申请大块内存，这必然会出现一定的浪费。
+
 ## 参考
 
 1. [Go常见面试题【由浅入深】2022版 | 迹寒](https://zhuanlan.zhihu.com/p/471490292)
@@ -340,3 +395,4 @@ Go支持多重继承，就是在类型中嵌入所有必要的父类型。
 3. [Go 语言中的变量究竟是分配在栈上、还是分配在堆上？逃逸分析告诉你答案 | 古明地盆](https://www.cnblogs.com/traditional/p/11505189.html)
 4. [一文搞懂go gc垃圾回收原理 | yi个俗人](https://juejin.cn/post/7111515970669117447)
 5. [GC垃圾回收机制设计原理 | wx602bc012c01dd](https://blog.51cto.com/u_15107299/4309453)
+6. [Go 语言内存管理（二）：Go 内存管理 | 达菲格](https://www.jianshu.com/p/7405b4e11ee2)
