@@ -293,7 +293,7 @@ runtime.Gosched()，用于让出CPU时间片，让出当前goroutine的执行权
 
 runtime.Goexit()，调用此函数会立即使当前的goroutine的运行终止（终止协程），而其它的goroutine并不会受此影响。runtime.Goexit在终止当前goroutine前会先执行此goroutine的还未执行的defer语句。请注意千万别在主函数调用runtime.Goexit，因为会引发panic。
 
-## 如何控制协程数目。
+## 如何控制协程数目
 
 可以使用环境变量 `GOMAXPROCS` 或 `runtime.GOMAXPROCS(num int)` 设置，例如：
 
@@ -401,72 +401,6 @@ mutex有两种模式：**normal** 和 **starvation**
 
 - 正常模式：所有goroutine按照FIFO的顺序进行锁获取，被唤醒的goroutine和新请求锁的goroutine同时进行锁获取，通常**新请求锁的goroutine更容易获取锁**(持续占有cpu)，被唤醒的goroutine则不容易获取到锁。公平性：否。
 - 饥饿模式：所有尝试获取锁的goroutine进行等待排队，**新请求锁的goroutine不会进行锁获取**(禁用自旋)，而是加入队列尾部等待获取锁。公平性：是。
-
-## Go 如何进行调度的。GMP中状态流转。
-
-Go 里面 GMP 分别代表：G：goroutine，M：线程（真正在CPU上跑的），P：调度器。
-
-调度器 P 是 M 和 G 之间桥梁。
-
-Go 进行调度过程：
-
-- 某个线程尝试创建一个新的 G，那么这个 G 就会被安排到这个线程的 G 本地队列 LRQ 中，如果 LRQ 满了，就会分配到全局队列 GRQ 中；
-- 尝试获取当前线程的 M，如果无法获取，就会从空闲的 M 列表中找一个，如果空闲列表也没有，那么就创建一个 M，然后绑定 G 与 P 运行。
-- 进入调度循环：
-  - 找到一个合适的 G
-  - 执行 G，完成以后退出
-
-
-## Go 什么时候发生阻塞？阻塞时，调度器会怎么做。
-
-- 用于**原子、互斥量或通道**操作导致 goroutine 阻塞，调度器将把当前阻塞的 goroutine 从本地运行队列 **LRQ换出**，并重新调度其它 goroutine；
-- 由于**网络请求**和 **IO** 导致的阻塞，Go 提供了网络轮询器（Netpoller）来处理，后台用 epoll 等技术实现 IO多路复用。
-
-其它回答：
-
-- **channel阻塞**：当 goroutine 读写 channel 发生阻塞时，会调用 gopark 函数，该 G 脱离当前的 M 和 P，调度器将新的 G 放入当前 M。
-- **系统调用**：当某个 G 由于系统调用陷入内核态，该 P 就会脱离当前 M，此时 P 会更新自己的状态为 Psyscall，M 与 G 相互绑定，进行系统调用。结束以后，若该 P 状态还是 Psyscall，则直接关联该 M 和 G，否则使用闲置的处理器处理该 G。
-- **系统监控**：当某个 G 在 P 上运行的时间超过 10ms 时候，或者 P 处于 Psyscall 状态过长等情况就会调用 retake 函数，触发新的调度。
-- **主动让出**：由于是协作式调度，该 G 会主动让出当前的 P（通过 GoSched），更新状态为 Grunnable，该 P 会调度队列中的 G 运行。
-
-## Go中GMP有哪些状态？
-
-G的状态：
-
-![img](https://static.sitestack.cn/projects/qcrao-Go-Questions/e42490ec98b6897bae32eb4e4d9d637c.png)
-
-- 空闲中(_Gidle)：表示G刚刚新建, 仍未初始化
-- 待运行(_Grunnable)：表示G在运行队列中, 等待M取出并运行
-- 运行中(_Grunning)：表示M正在运行这个G, 这时候M会拥有一个P
-- 系统调用中(_Gsyscall)：表示M正在运行这个G发起的系统调用, 这时候M并不拥有P
-- 等待中(_Gwaiting)：表示G在等待某些条件完成, 这时候G不在运行也不在运行队列中(可能在channel的等待队列中)
-- 已中止(_Gdead)：表示G未被使用, 可能已执行完毕(并在freelist中等待下次复用)
-- 栈复制中(_Gcopystack)：表示G正在获取一个新的栈空间并把原来的内容复制过去(用于防止GC扫描)
-
-P的状态：
-
-![P 的状态流转图](https://static.sitestack.cn/projects/qcrao-Go-Questions/d9472d7b0c758b90d51190d6e595f591.png)
-
-- 空闲中(_Pidle)：当M发现无待运行的G时会进入休眠, 这时M拥有的P会变为空闲并加到空闲P链表中
-- 运行中(_Prunning)：当M拥有了一个P后, 这个P的状态就会变为运行中, M运行G会使用这个P中的资源
-- 系统调用中(_Psyscall)：当Go调用原生代码, 原生代码又反过来调用Go代码时, 使用的P会变为此状态
-- GC停止中(_Pgcstop)：当gc停止了整个世界(STW)时, P会变为此状态
-- 已中止(_Pdead)：当P的数量在运行时改变, 且数量减少时多余的P会变为此状态
-
-M的状态：
-
-![M 的状态流转图](https://static.sitestack.cn/projects/qcrao-Go-Questions/2718ac731f8fe5e12b24fd1656672955.png)
-
-- **自旋线程**：处于运行状态但是没有可执行goroutine的线程，数量最多为GOMAXPROC，若是数量大于GOMAXPROC就会进入休眠。
-- **非自旋线程**：处于运行状态有可执行goroutine的线程。
-
-## GMP 能不能去掉 P 层？会怎么样？
-
-去掉 P 会导致，当 G 进行**系统调用时候，会一直阻塞**，其它 G 无法获得 M。
-
-## 如果有一个G一直占用资源怎么办。
-
-如果有个goroutine一直占用资源，那么GMP模型会**从正常模式转变为饥饿模式**（类似于mutex），允许其它goroutine抢占（禁用自旋锁）。
 
 ## 若干线程一个线程发生OOM(Out of memory)会怎么办。
 
@@ -595,6 +529,95 @@ Go解析tag采用的是**反射**。
 
 atomic源码位于`sync\atomic`。通过阅读源码可知，atomic采用**CAS**（CompareAndSwap）的方式实现的。所谓CAS就是使用了CPU中的原子性操作。在操作共享变量的时候，CAS不需要对其进行加锁，而是通过类似于乐观锁的方式进行检测，总是假设被操作的值未曾改变（即与旧值相等），并一旦确认这个假设的真实性就立即进行值替换。本质上是**不断占用CPU资源来避免加锁的开销**。
 
+## GPM/GMP
+
+CSP（Communicating Sequential Processes，通讯顺序进程），核心观念是将两个并发执行的实体通过通道 channel 连接起来，所有的消息都通过 channel 传输。
+
+GPM代表了三个角色，分别是Goroutine、Processor、Machine。
+
+- Goroutine：协程，代码中使用go关键词创建的执行单元，对应结构体 runtime.g，结构体里保存了 goroutine 的堆栈信息。占用的内存空间极小，上下文切换不需要经过内核态。
+- Machine：操作系统的线程，对应结构体 runtime.m，默认情况线程数等于 CPU 个数，每个线程分配到一个 CPU 上不至于出现线程的上下文切换，保证系统开销降到最低。
+- Processor：处理器，负责 M 与 G 的链接，它能提供线程需要的上下文环境，也能分配 G 到它应该去的线程上执行。P关联了的本地可运行 G 的队列（LRQ），最多可存放 256 个 G。
+
+### 调度流程
+
+![img](https://img.kancloud.cn/76/4f/764f7be119026cc16314e87628e4013f_1920x1080.jpeg)
+
+- 我们通过 go func() 来创建一个 goroutine；
+- 有两个存储 G 的队列，一个是局部调度器 P 的本地队列(LRQ)、一个是全局 G 队列(GRQ)。新创建的G会先保存在P的本地队列中，如果P的本地队列已经满了就会保存在全局的队列中；
+- G 只能运行在 M 中，一个 M 必须持有一个 P，M 与 P 是 1:1 的关系。M 从 P 的本地队列获取 G 执行，若本地队列中没有可运行的 G，M 会尝试从全局队列拿一批 G 放到 P 的本地队列，如果全局队列未找到可运行的 G，M 会随机从其他 P 的本地队列偷一半放到自己 P 的本地队列 (work stealing)；
+- 一个 M 调度 G 执行的过程是一个循环机制；
+- 当 G 因系统调用阻塞时会阻塞 M，此时 P 会和 M 解绑 (hand off)，并寻找新的 idle 的 M，若没有 idle 的 M 就会新建一个M。
+- 当 G 因 channel 或者 network I/O 阻塞时，不会阻塞 M，M 会寻找其他 runnable 的 G；当阻塞的 G 恢复后会重新进入 runnable 进入 P 队列等待执行。
+
+### 调度过程中阻塞
+
+GPM 模型的阻塞可能发生在：I/O，select；block on syscall；channel；等待锁； runtime.Gosched()
+
+- 用于**原子、互斥量或通道**操作导致 goroutine 阻塞，调度器将把当前阻塞的 goroutine 从本地运行队列换出，并重新调度其它 goroutine；
+- 由于**网络请求**和 **IO** 导致的阻塞，Go 提供了网络轮询器（Netpoller）来处理，后台用 epoll 等技术实现 IO多路复用。
+
+其它回答：
+
+- **channel阻塞**：当 goroutine 读写 channel 发生阻塞时，会调用 gopark 函数，该 G 脱离当前的 M 和 P，调度器将新的 G 放入当前 M。
+- **系统调用**：当某个 G 由于系统调用陷入内核态，该 P 就会脱离当前 M，此时 P 会更新自己的状态为 Psyscall，M 与 G 相互绑定，进行系统调用。结束以后，若该 P 状态还是 Psyscall，则直接关联该 M 和 G，否则使用闲置的处理器处理该 G。
+- **系统监控**：当某个 G 在 P 上运行的时间超过 10ms 时候，或者 P 处于 Psyscall 状态过长等情况就会调用 retake 函数，触发新的调度。
+- **主动让出**：由于是协作式调度，该 G 会主动让出当前的 P（通过 GoSched），更新状态为 Grunnable，该 P 会调度队列中的 G 运行。
+
+**用户态阻塞**
+
+当 goroutine 因为 channel 操作或者 network I/O 而阻塞时（实际上 golang 已经用 netpoller 实现了 goroutine 网络 I/O 阻塞不会导致 M 被阻塞，仅阻塞 G），对应的 G 会被放置到某个 wait 队列（如 channel 的 waitq），该G的状态由 _Gruning 变为 _Gwaitting，而 M 会跳过该 G 尝试获取并执行下一个 G，如果此时没有 runnable 的 G 供 M 运行，那么 M 将解绑 P，并进入 sleep 状态；当阻塞的 G 被另一端的 G2 唤醒时（比如 channel 的可读/写通知），G 被标记为 runnable，尝试加入 G2 所在 P 的 runnext，然后再是 P 的 Local 队列和 Global 队列。
+
+**系统调用阻塞**
+
+当 G 被阻塞在某个系统调用上时，此时 G 会阻塞在 _Gsyscall 状态，M 也处于 block on syscall 状态，此时的 M 可被抢占调度：执行该 G 的 M 会与 P 解绑，而 P 则尝试与其它 idle 的 M 绑定，继续执行其它 G。如果没有其它 idle 的 M，但 P 的 Local 队列中仍然有 G 需要执行，则创建一个新的 M；当系统调用完成后，G 会重新尝试获取一个 idle 的 P 进入它的 Local 队列恢复执行，如果没有 idle 的 P，G 会被标记为 runnable 加入到 Global 队列。
+
+### GPM 状态
+
+G的状态：
+
+![img](https://static.sitestack.cn/projects/qcrao-Go-Questions/e42490ec98b6897bae32eb4e4d9d637c.png)
+
+- 空闲中(_Gidle)：表示G刚刚新建, 仍未初始化
+- 待运行(_Grunnable)：表示G在运行队列中, 等待M取出并运行
+- 运行中(_Grunning)：表示M正在运行这个G, 这时候M会拥有一个P
+- 系统调用中(_Gsyscall)：表示M正在运行这个G发起的系统调用, 这时候M并不拥有P
+- 等待中(_Gwaiting)：表示G在等待某些条件完成, 这时候G不在运行也不在运行队列中(可能在channel的等待队列中)
+- 已中止(_Gdead)：表示G未被使用, 可能已执行完毕(并在freelist中等待下次复用)
+- 栈复制中(_Gcopystack)：表示G正在获取一个新的栈空间并把原来的内容复制过去(用于防止GC扫描)
+
+P的状态：
+
+![P 的状态流转图](https://static.sitestack.cn/projects/qcrao-Go-Questions/d9472d7b0c758b90d51190d6e595f591.png)
+
+- 空闲中(_Pidle)：当M发现无待运行的G时会进入休眠, 这时M拥有的P会变为空闲并加到空闲P链表中
+- 运行中(_Prunning)：当M拥有了一个P后, 这个P的状态就会变为运行中, M运行G会使用这个P中的资源
+- 系统调用中(_Psyscall)：当Go调用原生代码, 原生代码又反过来调用Go代码时, 使用的P会变为此状态
+- GC停止中(_Pgcstop)：当gc停止了整个世界(STW)时, P会变为此状态
+- 已中止(_Pdead)：当P的数量在运行时改变, 且数量减少时多余的P会变为此状态
+
+M的状态：
+
+![M 的状态流转图](https://static.sitestack.cn/projects/qcrao-Go-Questions/2718ac731f8fe5e12b24fd1656672955.png)
+
+- **自旋线程**：处于运行状态但是没有可执行goroutine的线程，数量最多为GOMAXPROC，若是数量大于GOMAXPROC就会进入休眠。
+- **非自旋线程**：处于运行状态有可执行goroutine的线程。
+
+### 高效的保证策略
+
+- M 可以复用，不需要反复创建与销毁，当没有可执行的 goroutine 时候就处于自旋状态，等待唤醒
+- Work Stealing 和 Hand Off 策略保证了 M 的高效利用
+- 内存分配状态 (mcache) 位于 P，G 可以跨 M 调度，不再存在跨 M 调度局部性差的问题
+- M 从关联的 P 中获取 G，不需要使用锁，是 lock free 的
+
+### GMP 能不能去掉 P 层？会怎么样？
+
+去掉 P 会导致，当 G 进行**系统调用时候，会一直阻塞**，其它 G 无法获得 M。
+
+### 如果有一个 G 一直占用资源怎么办
+
+如果有个 goroutine 一直占用资源，那么 GMP 模型会**从正常模式转变为饥饿模式**（类似于mutex），允许其它 goroutine 抢占（禁用自旋锁）。
+
 ## 参考
 
 1. [Go常见面试题【由浅入深】2022版 | 迹寒](https://zhuanlan.zhihu.com/p/471490292)
@@ -604,3 +627,6 @@ atomic源码位于`sync\atomic`。通过阅读源码可知，atomic采用**CAS**
 5. [GC垃圾回收机制设计原理 | wx602bc012c01dd](https://blog.51cto.com/u_15107299/4309453)
 6. [Go 语言内存管理（二）：Go 内存管理 | 达菲格](https://www.jianshu.com/p/7405b4e11ee2)
 7. [golang高并发探究之协程一 | 深秋鸟](https://juejin.cn/post/6844903872067010573)
+8. [Go语言的GPM调度器是什么？ | 马里嗷](https://juejin.cn/post/6844904130398404616)
+9. [Golang 修养之路 | Golang的协程调度器原理及GMP设计思想？ | 刘丹冰Aceld](http://static.kancloud.cn/aceld/golang/1958305)
+10. [Golang并发调度的GMP模型 | tink](https://juejin.cn/post/6886321367604527112)
