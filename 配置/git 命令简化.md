@@ -1,6 +1,6 @@
 # git 配置别名简化操作命令
 
-修改 `~/.gitconfig`文件，在末尾按自定义喜好新增别名配置，推荐如下：
+修改 `~/.gitconfig` 文件，在末尾按自定义喜好新增别名配置，推荐如下：
 
 ```shell
 [alias]
@@ -23,3 +23,15 @@
 	v = version
 ```
 
+修改 `~/.zprofile` 文件，在末尾按自定义喜好新增别名配置，推荐如下：
+
+```shell
+alias st='git st'
+alias aa='git aa'
+alias ca='git ca'
+alias ck='git ck'
+alias cm='git cm'
+alias clog='git clog'
+```
+
+利用 `source ~/.zprofile` 命令激活配置
