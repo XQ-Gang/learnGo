@@ -22,3 +22,6 @@ testdata/
 
 # IDE
 .idea/
+
+# just for learn
+learn.go
