@@ -25,3 +25,4 @@ testdata/
 
 # just for learn
 learn.go
+learn_test.go
