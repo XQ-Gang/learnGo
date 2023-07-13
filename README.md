@@ -9,6 +9,10 @@ XQ-Gang 学习 Golang 之旅
   - [电子书](https://www.yuque.com/aceld/lfhu8y)
   - [视频课程](https://www.bilibili.com/video/BV1Eg411m7rV/?spm_id_from=333.788&vd_source=ce2c49eab66cd6cbb4ae83c83d759289)
 
+## 博客
+
+- [qcrao：专注于 Go 语言(golang)、后端架构、个人成长](https://qcrao.com/archives/)
+
 ## 优质学习资料
 
 - [x] [Effective Go](https://go.dev/doc/effective_go)
