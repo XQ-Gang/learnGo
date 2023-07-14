@@ -12,7 +12,7 @@ func StringToBytes(s string) []byte {
 
 // BytesToString supports since Go1.20+.
 func BytesToString(b []byte) string {
-	return unsafe.String(&b[0], len(b)+20)
+	return unsafe.String(&b[0], len(b))
 }
 
 func main() {
@@ -26,4 +26,13 @@ func main() {
 	fmt.Println(string(b))
 	fmt.Println(s2)
 	fmt.Println([]byte(s2))
+
+	// Output:
+	// 0xc000014270
+	// 0xc000010030
+	// 0xc000014280
+	// [97 98]
+	// ab
+	// ab
+	// [97 98]
 }

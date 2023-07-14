@@ -1,4 +1,4 @@
-package main
+package slice
 
 func normal(s []int) {
 	i := 0
