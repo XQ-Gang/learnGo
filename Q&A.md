@@ -395,13 +395,6 @@ Golang 的程序在启动之初，会一次性从操作系统那里申请一大�
 
 当然这不是没有代价的，Go 需要预申请大块内存，这必然会出现一定的浪费。
 
-## mutex 有几种模式？
-
-mutex有两种模式：**normal** 和 **starvation**
-
-- 正常模式：所有goroutine按照FIFO的顺序进行锁获取，被唤醒的goroutine和新请求锁的goroutine同时进行锁获取，通常**新请求锁的goroutine更容易获取锁**(持续占有cpu)，被唤醒的goroutine则不容易获取到锁。公平性：否。
-- 饥饿模式：所有尝试获取锁的goroutine进行等待排队，**新请求锁的goroutine不会进行锁获取**(禁用自旋)，而是加入队列尾部等待获取锁。公平性：是。
-
 ## 若干线程一个线程发生OOM(Out of memory)会怎么办。
 
 对于线程而言：发生内存溢出的线程会被kill，其它线程不受影响。
@@ -618,6 +611,49 @@ M的状态：
 
 如果有个 goroutine 一直占用资源，那么 GMP 模型会**从正常模式转变为饥饿模式**（类似于mutex），允许其它 goroutine 抢占（禁用自旋锁）。
 
+## Golang 并发赋值
+
+> 参考：[Golang 并发赋值的安全性探讨](https://cloud.tencent.com/developer/article/1810536)
+
+- 由一条机器指令完成赋值的类型并发赋值是安全的，这些类型有：字节型，布尔型、整型、浮点型、字符型、指针、函数。
+- 数组由一个或多个元素组成，大部分情况并发不安全。注意：当位宽不大于 64 位且是 2 的整数次幂（8，16，32，64），那么其并发赋值是安全的。
+- struct 或底层是 struct 的类型并发赋值大部分情况并发不安全，这些类型有：复数、字符串、 数组、切片、字典、通道、接口。注意：当 struct 赋值时退化为单个字段由一个机器指令完成赋值时，并发赋值又是安全的。这种情况有：
+  - 实部或虚部相同的复数的并发赋值；
+  - 等长字符串的并发赋值；
+  - 同长度同容量切片的并发赋值；
+  - 同一种具体类型不同值并发赋给接口。
+
+## 锁
+
+### mutex 有几种模式？
+
+mutex有两种模式：**normal** 和 **starvation**
+
+- 正常模式：所有goroutine按照FIFO的顺序进行锁获取，被唤醒的goroutine和新请求锁的goroutine同时进行锁获取，通常**新请求锁的goroutine更容易获取锁**(持续占有cpu)，被唤醒的goroutine则不容易获取到锁。公平性：否。
+- 饥饿模式：所有尝试获取锁的goroutine进行等待排队，**新请求锁的goroutine不会进行锁获取**(禁用自旋)，而是加入队列尾部等待获取锁。公平性：是。
+
+### 使用锁的最佳实践
+
+- 使用 defer 保障释放
+- 减少持有时间，缩小临界区（如用 func 封装调用）
+- 优化锁的粒度，空间换时间
+  - 分段锁
+  - 空间换时间
+- 读写分离
+  - 读写锁
+  - sync.Map
+- 使用原子操作，无锁数据结构
+  - sync.atomic
+  - channel
+  - 不直接使用锁（localcache基础组件）
+
+### 使用锁之避免踩坑
+
+- 不要拷贝 Mutex，可传递指针
+- 不可重入：避免死锁
+- atomic.Value：应存入只读对象
+- 使用 race detector
+
 ## 参考
 
 1. [Go常见面试题【由浅入深】2022版 | 迹寒](https://zhuanlan.zhihu.com/p/471490292)
@@ -630,3 +666,4 @@ M的状态：
 8. [Go语言的GPM调度器是什么？ | 马里嗷](https://juejin.cn/post/6844904130398404616)
 9. [Golang 修养之路 | Golang的协程调度器原理及GMP设计思想？ | 刘丹冰Aceld](http://static.kancloud.cn/aceld/golang/1958305)
 10. [Golang并发调度的GMP模型 | tink](https://juejin.cn/post/6886321367604527112)
+11. [Golang 并发赋值的安全性探讨 | Dabelv](https://cloud.tencent.com/developer/article/1810536)
